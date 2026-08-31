@@ -72,6 +72,50 @@ Base.metadata.create_all(bind=engine)
 
 
 # =========================================================
+# CREATE / UPDATE DEFAULT ADMIN USER
+# =========================================================
+
+def create_default_admin():
+    db = next(get_db())
+
+    try:
+        admin = (
+            db.query(User)
+            .filter(User.username == "admin")
+            .first()
+        )
+
+        if admin is None:
+            admin = User(
+                username="admin",
+                email="admin@smartcity.com",
+                hashed_password=hash_password("Admin@123"),
+                role="admin"
+            )
+
+            db.add(admin)
+            db.commit()
+
+            print("DEFAULT ADMIN CREATED")
+            print("Username: admin")
+            print("Password: Admin@123")
+
+        else:
+            admin.hashed_password = hash_password("Admin@123")
+            admin.role = "admin"
+            db.commit()
+
+            print("DEFAULT ADMIN PASSWORD UPDATED")
+            print("Username: admin")
+            print("Password: Admin@123")
+
+    finally:
+        db.close()
+
+
+create_default_admin()
+
+# =========================================================
 # HOME
 # =========================================================
 
