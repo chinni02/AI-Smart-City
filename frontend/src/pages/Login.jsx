@@ -27,6 +27,9 @@ function Login() {
     try {
       setLoading(true);
 
+      console.log("Login API URL:", `${API_URL}/auth/login`);
+      console.log("Username:", username.trim());
+
       const response = await axios.post(
         `${API_URL}/auth/login`,
         {
@@ -48,27 +51,39 @@ function Login() {
 
       localStorage.setItem("access_token", token);
 
-      console.log("Token saved successfully");
+      console.log("Token saved successfully.");
 
       navigate("/dashboard", { replace: true });
+
     } catch (err) {
       console.error("LOGIN ERROR:", err);
 
       if (err.response) {
         console.error(
-          "Server response:",
+          "STATUS:",
+          err.response.status
+        );
+
+        console.error(
+          "SERVER RESPONSE:",
           err.response.data
         );
+      } else if (err.request) {
         console.error(
-          "Status:",
-          err.response.status
+          "No response received from backend."
+        );
+      } else {
+        console.error(
+          "Request error:",
+          err.message
         );
       }
 
       setError(
         err.response?.data?.detail ||
-          "Invalid username or password."
+        "Invalid username or password."
       );
+
     } finally {
       setLoading(false);
     }
@@ -76,6 +91,7 @@ function Login() {
 
   return (
     <div className="login-page">
+
       <div className="login-card">
 
         <div className="login-icon">
@@ -89,17 +105,27 @@ function Login() {
         </p>
 
         {error && (
-          <div className="login-error">
+          <div
+            className="login-error"
+            role="alert"
+          >
             ⚠️ {error}
           </div>
         )}
 
         <form onSubmit={handleLogin}>
 
+          {/* USERNAME */}
+
           <div className="login-field">
-            <label>Username</label>
+
+            <label htmlFor="username">
+              Username
+            </label>
 
             <input
+              id="username"
+              name="username"
               type="text"
               placeholder="Enter username"
               value={username}
@@ -107,13 +133,22 @@ function Login() {
                 setUsername(e.target.value)
               }
               autoComplete="username"
+              required
             />
+
           </div>
 
+          {/* PASSWORD */}
+
           <div className="login-field">
-            <label>Password</label>
+
+            <label htmlFor="password">
+              Password
+            </label>
 
             <input
+              id="password"
+              name="password"
               type="password"
               placeholder="Enter password"
               value={password}
@@ -121,8 +156,12 @@ function Login() {
                 setPassword(e.target.value)
               }
               autoComplete="current-password"
+              required
             />
+
           </div>
+
+          {/* LOGIN BUTTON */}
 
           <button
             type="submit"
@@ -141,8 +180,10 @@ function Login() {
         </p>
 
       </div>
+
     </div>
   );
 }
 
 export default Login;
+
