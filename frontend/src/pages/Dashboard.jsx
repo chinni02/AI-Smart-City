@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+
 import {
   BarChart,
   Bar,
@@ -14,7 +15,10 @@ import {
   Legend,
   ResponsiveContainer,
 } from "recharts";
+
 import "../App.css";
+
+const API_URL = import.meta.env.VITE_API_URL;
 
 // =====================================================
 // COLOR CONFIGURATION
@@ -44,26 +48,33 @@ const PRIORITY_COLORS = {
 };
 
 // =====================================================
-// APP
+// DASHBOARD
 // =====================================================
 
-function Dashboard(){
-
+function Dashboard() {
   const navigate = useNavigate();
 
-const handleLogout = () => {
-  localStorage.removeItem("access_token");
-  navigate("/login");
-};
+  // =====================================================
+  // LOGOUT
+  // =====================================================
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    navigate("/login");
+  };
+
+  // =====================================================
+  // STATE
+  // =====================================================
 
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState("");
 
   const [aiResult, setAiResult] = useState(null);
   const [riskResult, setRiskResult] = useState(null);
@@ -83,12 +94,16 @@ const handleLogout = () => {
       setLoading(true);
       setError("");
 
-      const response = await axios.get("/api/complaints");
+      const response = await axios.get(`${API_URL}/complaints`);
 
       setComplaints(response.data);
     } catch (err) {
-      console.error(err);
-      setError("Unable to connect to the backend.");
+      console.error("Fetch complaints error:", err);
+
+      setError(
+        err.response?.data?.detail ||
+          "Unable to connect to the backend."
+      );
     } finally {
       setLoading(false);
     }
@@ -100,12 +115,19 @@ const handleLogout = () => {
 
   const fetchCityAnalytics = async () => {
     try {
-      const response = await axios.get("/api/analytics/city");
+      const response = await axios.get(
+        `${API_URL}/analytics/city`
+      );
+
       setCityAnalytics(response.data);
     } catch (err) {
       console.error("City analytics error:", err);
     }
   };
+
+  // =====================================================
+  // INITIAL LOAD
+  // =====================================================
 
   useEffect(() => {
     fetchComplaints();
@@ -120,7 +142,9 @@ const handleLogout = () => {
     e.preventDefault();
 
     if (!description.trim() || !location.trim()) {
-      setError("Please enter both description and location.");
+      setError(
+        "Please enter both complaint description and location."
+      );
       setSuccess("");
       return;
     }
@@ -136,10 +160,13 @@ const handleLogout = () => {
       // STEP 1: CREATE COMPLAINT
       // -------------------------------------------------
 
-      const response = await axios.post("/api/complaints", {
-        description: description,
-        location: location,
-      });
+      const response = await axios.post(
+        `${API_URL}/complaints`,
+        {
+          description: description.trim(),
+          location: location.trim(),
+        }
+      );
 
       console.log("New complaint:", response.data);
 
@@ -148,14 +175,20 @@ const handleLogout = () => {
       // -------------------------------------------------
 
       try {
-        const aiResponse = await axios.post("/api/ai/classify", {
-          description: description,
-          location: location,
-        });
+        const aiResponse = await axios.post(
+          `${API_URL}/ai/classify`,
+          {
+            description: description.trim(),
+            location: location.trim(),
+          }
+        );
 
         setAiResult(aiResponse.data);
       } catch (aiError) {
-        console.error("AI classification error:", aiError);
+        console.error(
+          "AI classification error:",
+          aiError
+        );
       }
 
       // -------------------------------------------------
@@ -163,21 +196,29 @@ const handleLogout = () => {
       // -------------------------------------------------
 
       try {
-        const riskResponse = await axios.post("/api/ai/risk-predict", {
-          description: description,
-          location: location,
-        });
+        const riskResponse = await axios.post(
+          `${API_URL}/ai/risk-predict`,
+          {
+            description: description.trim(),
+            location: location.trim(),
+          }
+        );
 
         setRiskResult(riskResponse.data);
       } catch (riskError) {
-        console.error("Risk prediction error:", riskError);
+        console.error(
+          "Risk prediction error:",
+          riskError
+        );
       }
 
       // -------------------------------------------------
       // STEP 4: SUCCESS
       // -------------------------------------------------
 
-      setSuccess("Complaint submitted successfully!");
+      setSuccess(
+        "Complaint submitted successfully!"
+      );
 
       setDescription("");
       setLocation("");
@@ -185,7 +226,10 @@ const handleLogout = () => {
       await fetchComplaints();
       await fetchCityAnalytics();
     } catch (err) {
-      console.error("Complaint submission error:", err);
+      console.error(
+        "Complaint submission error:",
+        err
+      );
 
       setError(
         err.response?.data?.detail ||
@@ -202,16 +246,28 @@ const handleLogout = () => {
 
   const updateComplaint = async (id, updates) => {
     try {
-      await axios.put(`/api/complaints/${id}`, updates);
+      await axios.put(
+        `${API_URL}/complaints/${id}`,
+        updates
+      );
 
-      setSuccess("Complaint updated successfully!");
+      setSuccess(
+        "Complaint updated successfully!"
+      );
       setError("");
 
       await fetchComplaints();
       await fetchCityAnalytics();
     } catch (err) {
-      console.error(err);
-      setError("Unable to update complaint.");
+      console.error(
+        "Update complaint error:",
+        err
+      );
+
+      setError(
+        err.response?.data?.detail ||
+          "Unable to update complaint."
+      );
     }
   };
 
@@ -229,16 +285,27 @@ const handleLogout = () => {
     }
 
     try {
-      await axios.delete(`/api/complaints/${id}`);
+      await axios.delete(
+        `${API_URL}/complaints/${id}`
+      );
 
-      setSuccess("Complaint deleted successfully!");
+      setSuccess(
+        "Complaint deleted successfully!"
+      );
       setError("");
 
       await fetchComplaints();
       await fetchCityAnalytics();
     } catch (err) {
-      console.error(err);
-      setError("Unable to delete complaint.");
+      console.error(
+        "Delete complaint error:",
+        err
+      );
+
+      setError(
+        err.response?.data?.detail ||
+          "Unable to delete complaint."
+      );
     }
   };
 
@@ -250,70 +317,87 @@ const handleLogout = () => {
 
   const activeComplaints = complaints.filter(
     (complaint) =>
-      complaint.status?.toLowerCase() !== "resolved"
+      complaint.status?.toLowerCase() !==
+      "resolved"
   ).length;
 
   const resolvedComplaints = complaints.filter(
     (complaint) =>
-      complaint.status?.toLowerCase() === "resolved"
+      complaint.status?.toLowerCase() ===
+      "resolved"
   ).length;
 
-  const highPriorityComplaints = complaints.filter(
-    (complaint) =>
-      complaint.priority?.toLowerCase() === "high"
-  ).length;
+  const highPriorityComplaints =
+    complaints.filter(
+      (complaint) =>
+        complaint.priority?.toLowerCase() ===
+        "high"
+    ).length;
 
   // =====================================================
   // FILTER COMPLAINTS
   // =====================================================
 
-  const filteredComplaints = complaints.filter((complaint) => {
-    const search = searchTerm.toLowerCase();
+  const filteredComplaints = complaints.filter(
+    (complaint) => {
+      const search =
+        searchTerm.toLowerCase();
 
-    const matchesSearch =
-      complaint.description
-        ?.toLowerCase()
-        .includes(search) ||
-      complaint.location
-        ?.toLowerCase()
-        .includes(search);
+      const matchesSearch =
+        complaint.description
+          ?.toLowerCase()
+          .includes(search) ||
+        complaint.location
+          ?.toLowerCase()
+          .includes(search);
 
-    const matchesCategory =
-      categoryFilter === "All" ||
-      complaint.category === categoryFilter;
+      const matchesCategory =
+        categoryFilter === "All" ||
+        complaint.category ===
+          categoryFilter;
 
-    const matchesPriority =
-      priorityFilter === "All" ||
-      complaint.priority === priorityFilter;
+      const matchesPriority =
+        priorityFilter === "All" ||
+        complaint.priority ===
+          priorityFilter;
 
-    const matchesStatus =
-      statusFilter === "All" ||
-      complaint.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "All" ||
+        complaint.status ===
+          statusFilter;
 
-    return (
-      matchesSearch &&
-      matchesCategory &&
-      matchesPriority &&
-      matchesStatus
-    );
-  });
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesPriority &&
+        matchesStatus
+      );
+    }
+  );
 
   // =====================================================
   // CATEGORY ANALYTICS
   // =====================================================
 
   const categoryData = Object.entries(
-    complaints.reduce((acc, complaint) => {
-      const category = complaint.category || "Other";
+    complaints.reduce(
+      (acc, complaint) => {
+        const category =
+          complaint.category || "Other";
 
-      acc[category] = (acc[category] || 0) + 1;
+        acc[category] =
+          (acc[category] || 0) + 1;
 
-      return acc;
-    }, {})
+        return acc;
+      },
+      {}
+    )
   ).map(([name, count]) => ({
     name,
     count,
-    color: CATEGORY_COLORS[name] || CATEGORY_COLORS.Other,
+    color:
+      CATEGORY_COLORS[name] ||
+      CATEGORY_COLORS.Other,
   }));
 
   // =====================================================
@@ -321,17 +405,24 @@ const handleLogout = () => {
   // =====================================================
 
   const statusData = Object.entries(
-    complaints.reduce((acc, complaint) => {
-      const status = complaint.status || "Pending";
+    complaints.reduce(
+      (acc, complaint) => {
+        const status =
+          complaint.status || "Pending";
 
-      acc[status] = (acc[status] || 0) + 1;
+        acc[status] =
+          (acc[status] || 0) + 1;
 
-      return acc;
-    }, {})
+        return acc;
+      },
+      {}
+    )
   ).map(([name, count]) => ({
     name,
     count,
-    color: STATUS_COLORS[name] || "#64748b",
+    color:
+      STATUS_COLORS[name] ||
+      "#64748b",
   }));
 
   // =====================================================
@@ -339,17 +430,24 @@ const handleLogout = () => {
   // =====================================================
 
   const priorityData = Object.entries(
-    complaints.reduce((acc, complaint) => {
-      const priority = complaint.priority || "Medium";
+    complaints.reduce(
+      (acc, complaint) => {
+        const priority =
+          complaint.priority || "Medium";
 
-      acc[priority] = (acc[priority] || 0) + 1;
+        acc[priority] =
+          (acc[priority] || 0) + 1;
 
-      return acc;
-    }, {})
+        return acc;
+      },
+      {}
+    )
   ).map(([name, count]) => ({
     name,
     count,
-    color: PRIORITY_COLORS[name] || "#64748b",
+    color:
+      PRIORITY_COLORS[name] ||
+      "#64748b",
   }));
 
   // =====================================================
@@ -375,7 +473,6 @@ const handleLogout = () => {
       ================================================= */}
 
       <header className="dashboard-header">
-
         <div className="header-content">
 
           <div className="brand-section">
@@ -388,7 +485,8 @@ const handleLogout = () => {
               <h1>AI Smart City</h1>
 
               <p>
-                Complaint Management & Smart City Analytics
+                Complaint Management &
+                Smart City Analytics
               </p>
             </div>
 
@@ -396,22 +494,21 @@ const handleLogout = () => {
 
           <div className="header-actions">
 
-  <div className="system-status">
-    <span className="status-dot"></span>
-    System Online
-  </div>
+            <div className="system-status">
+              <span className="status-dot"></span>
+              System Online
+            </div>
 
-  <button
-    className="logout-button"
-    onClick={handleLogout}
-  >
-    🚪 Logout
-  </button>
+            <button
+              className="logout-button"
+              onClick={handleLogout}
+            >
+              🚪 Logout
+            </button>
 
-</div>
+          </div>
 
         </div>
-
       </header>
 
       <main className="dashboard-content">
@@ -441,59 +538,89 @@ const handleLogout = () => {
         {(aiResult || riskResult) && (
           <section className="intelligence-results">
 
+            {/* AI RESULT */}
+
             {aiResult && (
               <div
                 className="ai-result-card"
                 style={{
                   "--accent":
-                    CATEGORY_COLORS[aiResult.category] ||
-                    "#6366f1",
+                    CATEGORY_COLORS[
+                      aiResult.category
+                    ] || "#6366f1",
                 }}
               >
 
                 <div className="result-title">
+
                   <div className="result-icon">
                     🤖
                   </div>
 
                   <div>
-                    <h2>AI Classification</h2>
-                    <p>Automated complaint analysis</p>
+                    <h2>
+                      AI Classification
+                    </h2>
+
+                    <p>
+                      Automated complaint
+                      analysis
+                    </p>
                   </div>
+
                 </div>
 
                 <div className="result-grid">
 
                   <div className="result-item">
                     <span>Category</span>
+
                     <strong>
-                      {aiResult.category}
+                      {aiResult.category ||
+                        "N/A"}
                     </strong>
                   </div>
 
                   <div className="result-item">
                     <span>Priority</span>
+
                     <strong
-                      className={`priority-text ${aiResult.priority?.toLowerCase()}`}
+                      className={`priority-text ${
+                        aiResult.priority
+                          ?.toLowerCase() || ""
+                      }`}
                     >
-                      {aiResult.priority}
+                      {aiResult.priority ||
+                        "N/A"}
                     </strong>
                   </div>
 
                   <div className="result-item">
-                    <span>Confidence</span>
+                    <span>
+                      Confidence
+                    </span>
+
                     <strong>
-                      {aiResult.confidence}%
+                      {aiResult.confidence ??
+                        "N/A"}
+                      {aiResult.confidence != null
+                        ? "%"
+                        : ""}
                     </strong>
                   </div>
 
                 </div>
 
-                {aiResult.matched_keywords?.length > 0 && (
+                {aiResult.matched_keywords
+                  ?.length > 0 && (
                   <div className="keyword-section">
-                    <span>Matched Keywords</span>
+
+                    <span>
+                      Matched Keywords
+                    </span>
 
                     <div className="keywords">
+
                       {aiResult.matched_keywords.map(
                         (keyword, index) => (
                           <span key={index}>
@@ -501,6 +628,7 @@ const handleLogout = () => {
                           </span>
                         )
                       )}
+
                     </div>
                   </div>
                 )}
@@ -508,10 +636,13 @@ const handleLogout = () => {
               </div>
             )}
 
+            {/* RISK RESULT */}
+
             {riskResult && (
               <div
                 className={`risk-result-card ${
-                  riskResult.risk_level?.toLowerCase() || ""
+                  riskResult.risk_level
+                    ?.toLowerCase() || ""
                 }`}
               >
 
@@ -522,8 +653,14 @@ const handleLogout = () => {
                   </div>
 
                   <div>
-                    <h2>Predictive Risk Analysis</h2>
-                    <p>AI-powered risk assessment</p>
+                    <h2>
+                      Predictive Risk Analysis
+                    </h2>
+
+                    <p>
+                      AI-powered risk
+                      assessment
+                    </p>
                   </div>
 
                 </div>
@@ -531,23 +668,32 @@ const handleLogout = () => {
                 <div className="risk-score">
 
                   <div className="risk-number">
-                    {riskResult.risk_score}
+                    {riskResult.risk_score ??
+                      0}
+
                     <small>/100</small>
                   </div>
 
                   <div>
-                    <span>Risk Level</span>
+                    <span>
+                      Risk Level
+                    </span>
+
                     <strong>
-                      {riskResult.risk_level}
+                      {riskResult.risk_level ||
+                        "N/A"}
                     </strong>
                   </div>
 
                 </div>
 
-                {riskResult.reasons?.length > 0 && (
+                {riskResult.reasons
+                  ?.length > 0 && (
                   <div className="risk-factors">
 
-                    <span>Risk Factors</span>
+                    <span>
+                      Risk Factors
+                    </span>
 
                     <ul>
                       {riskResult.reasons.map(
@@ -562,7 +708,8 @@ const handleLogout = () => {
                   </div>
                 )}
 
-                {riskResult.critical_keywords?.length > 0 && (
+                {riskResult.critical_keywords
+                  ?.length > 0 && (
                   <div className="keyword-section">
 
                     <span>
@@ -570,6 +717,7 @@ const handleLogout = () => {
                     </span>
 
                     <div className="keywords danger-keywords">
+
                       {riskResult.critical_keywords.map(
                         (keyword, index) => (
                           <span key={index}>
@@ -577,6 +725,7 @@ const handleLogout = () => {
                           </span>
                         )
                       )}
+
                     </div>
 
                   </div>
@@ -597,16 +746,21 @@ const handleLogout = () => {
           <div className="section-heading">
 
             <div>
+
               <span className="section-label">
                 REPORT AN ISSUE
               </span>
 
-              <h2>Submit a Complaint</h2>
+              <h2>
+                Submit a Complaint
+              </h2>
 
               <p>
-                Describe a city issue and let AI classify
-                and prioritize it automatically.
+                Describe a city issue and let
+                AI classify and prioritize it
+                automatically.
               </p>
+
             </div>
 
             <div className="submission-icon">
@@ -628,7 +782,9 @@ const handleLogout = () => {
                 <textarea
                   value={description}
                   onChange={(e) =>
-                    setDescription(e.target.value)
+                    setDescription(
+                      e.target.value
+                    )
                   }
                   placeholder="Example: There is a large pothole causing accidents on the main road..."
                   rows="5"
@@ -646,13 +802,16 @@ const handleLogout = () => {
                   type="text"
                   value={location}
                   onChange={(e) =>
-                    setLocation(e.target.value)
+                    setLocation(
+                      e.target.value
+                    )
                   }
                   placeholder="Example: Hyderabad"
                 />
 
                 <div className="form-help">
-                  📍 Enter the city or affected area
+                  📍 Enter the city or affected
+                  area
                 </div>
 
               </div>
@@ -689,15 +848,20 @@ const handleLogout = () => {
           <div className="section-heading">
 
             <div>
+
               <span className="section-label">
                 REAL-TIME OVERVIEW
               </span>
 
-              <h2>🏙️ City Intelligence</h2>
+              <h2>
+                🏙️ City Intelligence
+              </h2>
 
               <p>
-                Current city-wide complaint insights
+                Current city-wide complaint
+                insights
               </p>
+
             </div>
 
           </div>
@@ -711,12 +875,19 @@ const handleLogout = () => {
               </div>
 
               <div>
-                <span>Total Complaints</span>
+                <span>
+                  Total Complaints
+                </span>
+
                 <h3>
-                  {cityAnalytics?.total_complaints ??
+                  {cityAnalytics
+                    ?.total_complaints ??
                     totalComplaints}
                 </h3>
-                <p>Across the city</p>
+
+                <p>
+                  Across the city
+                </p>
               </div>
 
             </div>
@@ -728,12 +899,19 @@ const handleLogout = () => {
               </div>
 
               <div>
-                <span>High Priority</span>
+                <span>
+                  High Priority
+                </span>
+
                 <h3>
-                  {cityAnalytics?.high_priority_count ??
+                  {cityAnalytics
+                    ?.high_priority_count ??
                     highPriorityComplaints}
                 </h3>
-                <p>Needs attention</p>
+
+                <p>
+                  Needs attention
+                </p>
               </div>
 
             </div>
@@ -745,12 +923,19 @@ const handleLogout = () => {
               </div>
 
               <div>
-                <span>Top Category</span>
+                <span>
+                  Top Category
+                </span>
+
                 <h3 className="text-value">
-                  {cityAnalytics?.most_reported_category ||
+                  {cityAnalytics
+                    ?.most_reported_category ||
                     "N/A"}
                 </h3>
-                <p>Most reported issue</p>
+
+                <p>
+                  Most reported issue
+                </p>
               </div>
 
             </div>
@@ -762,12 +947,19 @@ const handleLogout = () => {
               </div>
 
               <div>
-                <span>Most Affected Location</span>
+                <span>
+                  Most Affected Location
+                </span>
+
                 <h3 className="text-value">
-                  {cityAnalytics?.most_affected_location ||
+                  {cityAnalytics
+                    ?.most_affected_location ||
                     "N/A"}
                 </h3>
-                <p>Highest complaint count</p>
+
+                <p>
+                  Highest complaint count
+                </p>
               </div>
 
             </div>
@@ -785,30 +977,43 @@ const handleLogout = () => {
           <div className="section-heading">
 
             <div>
+
               <span className="section-label">
                 DATA VISUALIZATION
               </span>
 
-              <h2>📈 Smart City Analytics</h2>
+              <h2>
+                📈 Smart City Analytics
+              </h2>
 
               <p>
-                Visual breakdown of city complaints
+                Visual breakdown of city
+                complaints
               </p>
+
             </div>
 
           </div>
 
           <div className="charts-grid">
 
-            {/* CATEGORY */}
+            {/* CATEGORY CHART */}
 
             <div className="chart-card">
 
               <div className="chart-header">
 
                 <div>
-                  <h3>Complaints by Category</h3>
-                  <p>Distribution of reported issues</p>
+
+                  <h3>
+                    Complaints by Category
+                  </h3>
+
+                  <p>
+                    Distribution of reported
+                    issues
+                  </p>
+
                 </div>
 
                 <span className="chart-icon">
@@ -872,6 +1077,7 @@ const handleLogout = () => {
                     name="Complaints"
                     radius={[8, 8, 0, 0]}
                   >
+
                     {categoryData.map(
                       (entry, index) => (
                         <Cell
@@ -880,6 +1086,7 @@ const handleLogout = () => {
                         />
                       )
                     )}
+
                   </Bar>
 
                 </BarChart>
@@ -888,35 +1095,48 @@ const handleLogout = () => {
 
               <div className="chart-legend">
 
-                {categoryData.map((item) => (
-                  <div
-                    className="legend-item"
-                    key={item.name}
-                  >
-                    <span
-                      className="legend-dot"
-                      style={{
-                        backgroundColor: item.color,
-                      }}
-                    ></span>
+                {categoryData.map(
+                  (item) => (
+                    <div
+                      className="legend-item"
+                      key={item.name}
+                    >
 
-                    {item.name}
-                  </div>
-                ))}
+                      <span
+                        className="legend-dot"
+                        style={{
+                          backgroundColor:
+                            item.color,
+                        }}
+                      ></span>
+
+                      {item.name}
+
+                    </div>
+                  )
+                )}
 
               </div>
 
             </div>
 
-            {/* STATUS */}
+            {/* STATUS CHART */}
 
             <div className="chart-card">
 
               <div className="chart-header">
 
                 <div>
-                  <h3>Complaints by Status</h3>
-                  <p>Current resolution progress</p>
+
+                  <h3>
+                    Complaints by Status
+                  </h3>
+
+                  <p>
+                    Current resolution
+                    progress
+                  </p>
+
                 </div>
 
                 <span className="chart-icon">
@@ -932,86 +1152,115 @@ const handleLogout = () => {
 
                 <PieChart>
 
-           <Pie
-  data={statusData}
-  dataKey="count"
-  nameKey="name"
-  cx="50%"
-  cy="45%"
-  innerRadius={65}
-  outerRadius={105}
-  paddingAngle={3}
->
-  {statusData.map((entry, index) => (
-    <Cell
-      key={`status-${index}`}
-      fill={STATUS_COLORS[entry.name] || "#94a3b8"}
-    />
-  ))}
-</Pie>
+                  <Pie
+                    data={statusData}
+                    dataKey="count"
+                    nameKey="name"
+                    cx="50%"
+                    cy="45%"
+                    innerRadius={65}
+                    outerRadius={105}
+                    paddingAngle={3}
+                  >
 
-                 <Tooltip
-                   formatter={(value, name) => [
-                     `${value} complaints`,
-                 name
-                ]}
-              />
+                    {statusData.map(
+                      (entry, index) => (
+                        <Cell
+                          key={`status-${index}`}
+                          fill={
+                            STATUS_COLORS[
+                              entry.name
+                            ] ||
+                            "#94a3b8"
+                          }
+                        />
+                      )
+                    )}
 
-              <Legend
-                verticalAlign="bottom"
-                height={45}
-                iconType="circle"
-                formatter={(value) => {
-                 const item = statusData.find(
-                   (entry) => entry.name === value
-                  );
+                  </Pie>
 
-                  return `${value} (${item?.count || 0})`;
-                }}
-              />
+                  <Tooltip
+                    formatter={(
+                      value,
+                      name
+                    ) => [
+                      `${value} complaints`,
+                      name,
+                    ]}
+                  />
 
-        </PieChart>
+                  <Legend
+                    verticalAlign="bottom"
+                    height={45}
+                    iconType="circle"
+                    formatter={(value) => {
+
+                      const item =
+                        statusData.find(
+                          (entry) =>
+                            entry.name ===
+                            value
+                        );
+
+                      return `${value} (${
+                        item?.count || 0
+                      })`;
+                    }}
+                  />
+
+                </PieChart>
 
               </ResponsiveContainer>
 
               <div className="status-summary">
 
-                {statusData.map((item) => (
-                  <div
-                    className="summary-item"
-                    key={item.name}
-                  >
-                    <span
-                      className="summary-dot"
-                      style={{
-                        backgroundColor: item.color,
-                      }}
-                    ></span>
+                {statusData.map(
+                  (item) => (
+                    <div
+                      className="summary-item"
+                      key={item.name}
+                    >
 
-                    <span>
-                      {item.name}
-                    </span>
+                      <span
+                        className="summary-dot"
+                        style={{
+                          backgroundColor:
+                            item.color,
+                        }}
+                      ></span>
 
-                    <strong>
-                      {item.count}
-                    </strong>
+                      <span>
+                        {item.name}
+                      </span>
 
-                  </div>
-                ))}
+                      <strong>
+                        {item.count}
+                      </strong>
+
+                    </div>
+                  )
+                )}
 
               </div>
 
             </div>
 
-            {/* PRIORITY */}
+            {/* PRIORITY CHART */}
 
             <div className="chart-card">
 
               <div className="chart-header">
 
                 <div>
-                  <h3>Complaints by Priority</h3>
-                  <p>Urgency distribution</p>
+
+                  <h3>
+                    Complaints by Priority
+                  </h3>
+
+                  <p>
+                    Urgency distribution
+                  </p>
+
                 </div>
 
                 <span className="chart-icon">
@@ -1086,30 +1335,35 @@ const handleLogout = () => {
 
               <div className="priority-summary">
 
-                {priorityData.map((item) => (
-                  <div
-                    className="priority-summary-item"
-                    key={item.name}
-                  >
+                {priorityData.map(
+                  (item) => (
+                    <div
+                      className="priority-summary-item"
+                      key={item.name}
+                    >
 
-                    <span
-                      style={{
-                        backgroundColor: item.color,
-                      }}
-                    ></span>
+                      <span
+                        style={{
+                          backgroundColor:
+                            item.color,
+                        }}
+                      ></span>
 
-                    <div>
-                      <strong>
-                        {item.name}
-                      </strong>
+                      <div>
 
-                      <small>
-                        {item.count} complaints
-                      </small>
+                        <strong>
+                          {item.name}
+                        </strong>
+
+                        <small>
+                          {item.count} complaints
+                        </small>
+
+                      </div>
+
                     </div>
-
-                  </div>
-                ))}
+                  )
+                )}
 
               </div>
 
@@ -1120,57 +1374,105 @@ const handleLogout = () => {
         </section>
 
         {/* =================================================
-            DASHBOARD STATISTICS
+            QUICK STATISTICS
         ================================================= */}
 
         <section className="quick-stats">
 
           <div className="quick-stat">
+
             <span className="quick-icon blue-icon">
               📊
             </span>
 
             <div>
-              <span>Total Complaints</span>
-              <strong>{totalComplaints}</strong>
-              <small>All complaints</small>
+
+              <span>
+                Total Complaints
+              </span>
+
+              <strong>
+                {totalComplaints}
+              </strong>
+
+              <small>
+                All complaints
+              </small>
+
             </div>
+
           </div>
 
           <div className="quick-stat">
+
             <span className="quick-icon orange-icon">
               ⏳
             </span>
 
             <div>
-              <span>Active Complaints</span>
-              <strong>{activeComplaints}</strong>
-              <small>Pending / In Progress</small>
+
+              <span>
+                Active Complaints
+              </span>
+
+              <strong>
+                {activeComplaints}
+              </strong>
+
+              <small>
+                Pending / In Progress
+              </small>
+
             </div>
+
           </div>
 
           <div className="quick-stat">
+
             <span className="quick-icon green-icon">
               ✅
             </span>
 
             <div>
-              <span>Resolved</span>
-              <strong>{resolvedComplaints}</strong>
-              <small>Successfully resolved</small>
+
+              <span>
+                Resolved
+              </span>
+
+              <strong>
+                {resolvedComplaints}
+              </strong>
+
+              <small>
+                Successfully resolved
+              </small>
+
             </div>
+
           </div>
 
           <div className="quick-stat">
+
             <span className="quick-icon red-icon">
               🚨
             </span>
 
             <div>
-              <span>High Priority</span>
-              <strong>{highPriorityComplaints}</strong>
-              <small>Needs attention</small>
+
+              <span>
+                High Priority
+              </span>
+
+              <strong>
+                {highPriorityComplaints}
+              </strong>
+
+              <small>
+                Needs attention
+              </small>
+
             </div>
+
           </div>
 
         </section>
@@ -1184,15 +1486,20 @@ const handleLogout = () => {
           <div className="section-heading complaint-heading">
 
             <div>
+
               <span className="section-label">
                 COMPLAINT MANAGEMENT
               </span>
 
-              <h2>📋 Recent Complaints</h2>
+              <h2>
+                📋 Recent Complaints
+              </h2>
 
               <p>
-                Manage, filter and track reported issues
+                Manage, filter and track
+                reported issues
               </p>
+
             </div>
 
             <button
@@ -1217,7 +1524,9 @@ const handleLogout = () => {
                 placeholder="Search complaints or location..."
                 value={searchTerm}
                 onChange={(e) =>
-                  setSearchTerm(e.target.value)
+                  setSearchTerm(
+                    e.target.value
+                  )
                 }
               />
 
@@ -1226,45 +1535,86 @@ const handleLogout = () => {
             <select
               value={categoryFilter}
               onChange={(e) =>
-                setCategoryFilter(e.target.value)
+                setCategoryFilter(
+                  e.target.value
+                )
               }
             >
+
               <option value="All">
                 All Categories
               </option>
 
-              <option value="Road">Road</option>
-              <option value="Garbage">Garbage</option>
+              <option value="Road">
+                Road
+              </option>
+
+              <option value="Garbage">
+                Garbage
+              </option>
+
               <option value="Electricity">
                 Electricity
               </option>
-              <option value="Water">Water</option>
-              <option value="Traffic">Traffic</option>
-              <option value="Fire">Fire</option>
-              <option value="Drainage">Drainage</option>
+
+              <option value="Water">
+                Water
+              </option>
+
+              <option value="Traffic">
+                Traffic
+              </option>
+
+              <option value="Fire">
+                Fire
+              </option>
+
+              <option value="Drainage">
+                Drainage
+              </option>
+
+              <option value="Other">
+                Other
+              </option>
+
             </select>
 
             <select
               value={priorityFilter}
               onChange={(e) =>
-                setPriorityFilter(e.target.value)
+                setPriorityFilter(
+                  e.target.value
+                )
               }
             >
+
               <option value="All">
                 All Priorities
               </option>
 
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
+              <option value="High">
+                High
+              </option>
+
+              <option value="Medium">
+                Medium
+              </option>
+
+              <option value="Low">
+                Low
+              </option>
+
             </select>
 
             <select
               value={statusFilter}
               onChange={(e) =>
-                setStatusFilter(e.target.value)
+                setStatusFilter(
+                  e.target.value
+                )
               }
             >
+
               <option value="All">
                 All Statuses
               </option>
@@ -1280,6 +1630,7 @@ const handleLogout = () => {
               <option value="Resolved">
                 Resolved
               </option>
+
             </select>
 
             <button
@@ -1294,15 +1645,21 @@ const handleLogout = () => {
           {/* RESULT COUNT */}
 
           <div className="result-count">
+
             Showing{" "}
+
             <strong>
               {filteredComplaints.length}
             </strong>{" "}
+
             of{" "}
+
             <strong>
               {complaints.length}
             </strong>{" "}
+
             complaints
+
           </div>
 
           {/* COMPLAINT LIST */}
@@ -1310,29 +1667,47 @@ const handleLogout = () => {
           {loading ? (
 
             <div className="empty-state">
+
               <div className="loading-spinner"></div>
-              <p>Loading complaints...</p>
+
+              <p>
+                Loading complaints...
+              </p>
+
             </div>
 
           ) : complaints.length === 0 ? (
 
             <div className="empty-state">
+
               <div>📭</div>
-              <h3>No complaints found</h3>
+
+              <h3>
+                No complaints found
+              </h3>
+
               <p>
-                There are currently no complaints in the
-                system.
+                There are currently no
+                complaints in the system.
               </p>
+
             </div>
 
           ) : filteredComplaints.length === 0 ? (
 
             <div className="empty-state">
+
               <div>🔍</div>
-              <h3>No matching complaints</h3>
+
+              <h3>
+                No matching complaints
+              </h3>
+
               <p>
-                Try changing your search or filters.
+                Try changing your search
+                or filters.
               </p>
+
             </div>
 
           ) : (
@@ -1345,9 +1720,11 @@ const handleLogout = () => {
                   const categoryColor =
                     CATEGORY_COLORS[
                       complaint.category
-                    ] || CATEGORY_COLORS.Other;
+                    ] ||
+                    CATEGORY_COLORS.Other;
 
                   return (
+
                     <div
                       className="complaint-card"
                       key={complaint.id}
@@ -1368,10 +1745,12 @@ const handleLogout = () => {
                           style={{
                             backgroundColor:
                               `${categoryColor}18`,
-                            color: categoryColor,
+                            color:
+                              categoryColor,
                           }}
                         >
-                          {complaint.category}
+                          {complaint.category ||
+                            "Other"}
                         </span>
 
                       </div>
@@ -1381,24 +1760,32 @@ const handleLogout = () => {
                       </h3>
 
                       <div className="complaint-location">
-                        📍 {complaint.location}
+                        📍{" "}
+                        {complaint.location}
                       </div>
 
                       <div className="complaint-controls">
 
+                        {/* PRIORITY */}
+
                         <label>
-                          <span>Priority</span>
+
+                          <span>
+                            Priority
+                          </span>
 
                           <select
                             value={
-                              complaint.priority
+                              complaint.priority ||
+                              "Medium"
                             }
                             onChange={(e) =>
                               updateComplaint(
                                 complaint.id,
                                 {
                                   priority:
-                                    e.target.value,
+                                    e.target
+                                      .value,
                                 }
                               )
                             }
@@ -1406,9 +1793,11 @@ const handleLogout = () => {
                               borderColor:
                                 PRIORITY_COLORS[
                                   complaint.priority
-                                ] || "#cbd5e1",
+                                ] ||
+                                "#cbd5e1",
                             }}
                           >
+
                             <option value="Low">
                               Low
                             </option>
@@ -1420,22 +1809,31 @@ const handleLogout = () => {
                             <option value="High">
                               High
                             </option>
+
                           </select>
+
                         </label>
 
+                        {/* STATUS */}
+
                         <label>
-                          <span>Status</span>
+
+                          <span>
+                            Status
+                          </span>
 
                           <select
                             value={
-                              complaint.status
+                              complaint.status ||
+                              "Pending"
                             }
                             onChange={(e) =>
                               updateComplaint(
                                 complaint.id,
                                 {
                                   status:
-                                    e.target.value,
+                                    e.target
+                                      .value,
                                 }
                               )
                             }
@@ -1443,9 +1841,11 @@ const handleLogout = () => {
                               borderColor:
                                 STATUS_COLORS[
                                   complaint.status
-                                ] || "#cbd5e1",
+                                ] ||
+                                "#cbd5e1",
                             }}
                           >
+
                             <option value="Pending">
                               Pending
                             </option>
@@ -1457,8 +1857,12 @@ const handleLogout = () => {
                             <option value="Resolved">
                               Resolved
                             </option>
+
                           </select>
+
                         </label>
+
+                        {/* DELETE */}
 
                         <button
                           className="delete-button"
@@ -1474,6 +1878,7 @@ const handleLogout = () => {
                       </div>
 
                     </div>
+
                   );
                 }
               )}
@@ -1491,13 +1896,16 @@ const handleLogout = () => {
       ================================================= */}
 
       <footer className="dashboard-footer">
+
         <p>
-          AI Smart City Complaint Management Platform
+          AI Smart City Complaint
+          Management Platform
         </p>
 
         <span>
           Powered by AI & Predictive Analytics
         </span>
+
       </footer>
 
     </div>

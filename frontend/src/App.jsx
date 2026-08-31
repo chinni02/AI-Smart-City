@@ -23,13 +23,19 @@ function App() {
     <BrowserRouter>
       <Routes>
 
+        {/* ROOT → LOGIN */}
+        <Route
+          path="/"
+          element={<Navigate to="/login" replace />}
+        />
+
         {/* LOGIN */}
         <Route
           path="/login"
           element={<Login />}
         />
 
-        {/* PROTECTED DASHBOARD */}
+        {/* DASHBOARD */}
         <Route
           path="/dashboard"
           element={
@@ -39,15 +45,10 @@ function App() {
           }
         />
 
-        {/* UNKNOWN URL */}
+        {/* UNKNOWN URL → LOGIN */}
         <Route
           path="*"
-          element={
-            <Navigate
-              to="/login"
-              replace
-            />
-          }
+          element={<Navigate to="/login" replace />}
         />
 
       </Routes>

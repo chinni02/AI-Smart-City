@@ -2,6 +2,10 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  "https://ai-smart-city-backend.onrender.com";
+
 function Login() {
   const navigate = useNavigate();
 
@@ -11,59 +15,67 @@ function Login() {
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  setError("");
+    setError("");
 
-  if (!username.trim() || !password.trim()) {
-    setError("Please enter username and password.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-
-    const response = await axios.post(
-      "http://127.0.0.1:8000/auth/login",
-      {
-        username: username,
-        password: password,
-      }
-    );
-
-    console.log("LOGIN RESPONSE:", response.data);
-
-    const token = response.data.access_token;
-
-    console.log("TOKEN:", token);
-
-    if (!token) {
-      setError("Login successful, but no access token was received.");
+    if (!username.trim() || !password.trim()) {
+      setError("Please enter username and password.");
       return;
     }
 
-    localStorage.setItem("access_token", token);
+    try {
+      setLoading(true);
 
-    console.log("Token saved successfully");
+      const response = await axios.post(
+        `${API_URL}/auth/login`,
+        {
+          username: username.trim(),
+          password: password,
+        }
+      );
 
-    navigate("/dashboard");
+      console.log("LOGIN RESPONSE:", response.data);
 
-  } catch (err) {
-    console.error("LOGIN ERROR:", err);
+      const token = response.data.access_token;
 
-    setError(
-      err.response?.data?.detail ||
-      "Invalid username or password."
-    );
+      if (!token) {
+        setError(
+          "Login successful, but no access token was received."
+        );
+        return;
+      }
 
-  } finally {
-    setLoading(false);
-  }
-};
+      localStorage.setItem("access_token", token);
+
+      console.log("Token saved successfully");
+
+      navigate("/dashboard", { replace: true });
+    } catch (err) {
+      console.error("LOGIN ERROR:", err);
+
+      if (err.response) {
+        console.error(
+          "Server response:",
+          err.response.data
+        );
+        console.error(
+          "Status:",
+          err.response.status
+        );
+      }
+
+      setError(
+        err.response?.data?.detail ||
+          "Invalid username or password."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="login-page">
-
       <div className="login-card">
 
         <div className="login-icon">
@@ -94,6 +106,7 @@ function Login() {
               onChange={(e) =>
                 setUsername(e.target.value)
               }
+              autoComplete="username"
             />
           </div>
 
@@ -107,6 +120,7 @@ function Login() {
               onChange={(e) =>
                 setPassword(e.target.value)
               }
+              autoComplete="current-password"
             />
           </div>
 
@@ -115,7 +129,9 @@ function Login() {
             className="login-button"
             disabled={loading}
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading
+              ? "Signing in..."
+              : "Sign In"}
           </button>
 
         </form>
@@ -125,7 +141,6 @@ function Login() {
         </p>
 
       </div>
-
     </div>
   );
 }
