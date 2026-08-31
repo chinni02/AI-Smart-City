@@ -19,7 +19,9 @@ function Login() {
 
     setError("");
 
-    if (!username.trim() || !password.trim()) {
+    const cleanUsername = username.trim();
+
+    if (!cleanUsername || !password) {
       setError("Please enter username and password.");
       return;
     }
@@ -27,19 +29,29 @@ function Login() {
     try {
       setLoading(true);
 
-      console.log("Login API URL:", `${API_URL}/auth/login`);
+      console.log(
+        "Login API URL:",
+        `${API_URL}/auth/login`
+      );
 
       const response = await axios.post(
         `${API_URL}/auth/login`,
         {
-          username: username.trim(),
+          username: cleanUsername,
           password: password,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json",
+          },
+          timeout: 30000,
         }
       );
 
       console.log("LOGIN RESPONSE:", response.data);
 
-      const token = response.data.access_token;
+      const token = response.data?.access_token;
 
       if (!token) {
         setError(
@@ -58,11 +70,7 @@ function Login() {
       console.error("LOGIN ERROR:", err);
 
       if (err.response) {
-        console.error(
-          "STATUS:",
-          err.response.status
-        );
-
+        console.error("STATUS:", err.response.status);
         console.error(
           "SERVER RESPONSE:",
           err.response.data
@@ -80,12 +88,12 @@ function Login() {
         );
 
         setError(
-          "Unable to connect to the backend."
+          "Unable to connect to the backend. Please try again."
         );
 
       } else {
         setError(
-          "Something went wrong. Please try again."
+          "An unexpected error occurred. Please try again."
         );
       }
 
@@ -103,9 +111,7 @@ function Login() {
           🏙️
         </div>
 
-        <h1>
-          AI Smart City
-        </h1>
+        <h1>AI Smart City</h1>
 
         <p className="login-subtitle">
           Admin Portal
@@ -122,8 +128,6 @@ function Login() {
 
         <form onSubmit={handleLogin}>
 
-          {/* USERNAME */}
-
           <div className="login-field">
 
             <label htmlFor="username">
@@ -136,16 +140,13 @@ function Login() {
               type="text"
               placeholder="Enter username"
               value={username}
+              autoComplete="username"
               onChange={(e) =>
                 setUsername(e.target.value)
               }
-              autoComplete="username"
-              required
             />
 
           </div>
-
-          {/* PASSWORD */}
 
           <div className="login-field">
 
@@ -159,25 +160,20 @@ function Login() {
               type="password"
               placeholder="Enter password"
               value={password}
+              autoComplete="current-password"
               onChange={(e) =>
                 setPassword(e.target.value)
               }
-              autoComplete="current-password"
-              required
             />
 
           </div>
-
-          {/* LOGIN BUTTON */}
 
           <button
             type="submit"
             className="login-button"
             disabled={loading}
           >
-            {loading
-              ? "Signing in..."
-              : "Sign In"}
+            {loading ? "Signing in..." : "Sign In"}
           </button>
 
         </form>
@@ -191,4 +187,5 @@ function Login() {
     </div>
   );
 }
+
 export default Login;
