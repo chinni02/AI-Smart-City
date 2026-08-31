@@ -28,7 +28,6 @@ function Login() {
       setLoading(true);
 
       console.log("Login API URL:", `${API_URL}/auth/login`);
-      console.log("Username:", username.trim());
 
       const response = await axios.post(
         `${API_URL}/auth/login`,
@@ -68,21 +67,27 @@ function Login() {
           "SERVER RESPONSE:",
           err.response.data
         );
-      } else if (err.request) {
-        console.error(
-          "No response received from backend."
+
+        setError(
+          err.response.data?.detail ||
+          "Invalid username or password."
         );
-      } else {
+
+      } else if (err.request) {
         console.error(
           "Request error:",
           err.message
         );
-      }
 
-      setError(
-        err.response?.data?.detail ||
-        "Invalid username or password."
-      );
+        setError(
+          "Unable to connect to the backend."
+        );
+
+      } else {
+        setError(
+          "Something went wrong. Please try again."
+        );
+      }
 
     } finally {
       setLoading(false);
@@ -98,7 +103,9 @@ function Login() {
           🏙️
         </div>
 
-        <h1>AI Smart City</h1>
+        <h1>
+          AI Smart City
+        </h1>
 
         <p className="login-subtitle">
           Admin Portal
@@ -184,6 +191,4 @@ function Login() {
     </div>
   );
 }
-
 export default Login;
-
